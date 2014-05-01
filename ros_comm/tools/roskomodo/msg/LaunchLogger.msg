@@ -1,0 +1,10 @@
+time stamp
+string package
+string node_name
+string process_name
+string master_uri
+string desktop_session
+string ros_distro
+bool python
+uint8 register
+uint32 duration
