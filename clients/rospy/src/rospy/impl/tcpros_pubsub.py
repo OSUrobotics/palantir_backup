@@ -355,3 +355,69 @@ class TCPROSHandler(rospy.impl.transport.ProtocolHandler):
                 topic.add_connection(transport)
             
 
+class QueuedConnection(object):
+    """
+    It wraps a Transport instance and behaves like one
+    but it queues the data written to it and relays them
+    asynchronously to the wrapped instance.
+    """
+
+    def __init__(self, connection, queue_size):
+        """
+        ctor.
+        @param connection: the wrapped transport instance
+        @type  connection: Transport
+        @param queue_size: the maximum size of the queue, zero means infinite
+        @type  queue_size: int
+        """
+        super(QueuedConnection, self).__init__()
+        self._connection = connection
+        self._queue_size = queue_size
+
+        self._lock = threading.Lock()
+        self._cond_data_available = threading.Condition(self._lock)
+        self._queue = []
+        self._error = None
+
+        self._thread = threading.Thread(target=self._run)
+        self._thread.start()
+
+    def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError(name)
+        return getattr(self._connection, name)
+
+    def write_data(self, data):
+        with self._lock:
+            # if there was previously an error within the dispatch thread raise it
+            if self._error:
+                error = self._error
+                self._error = None
+                raise error
+            # pop oldest data if queue limit is reached
+            if self._queue_size > 0 and len(self._queue) == self._queue_size:
+                del self._queue[0]
+            self._queue.append(data)
+            self._cond_data_available.notify()
+        # effectively yields the rest of the thread quantum
+        time.sleep(0)
+        return True
+
+    def _run(self):
+        while not self._connection.done:
+            queue = []
+            with self._lock:
+                # wait for available data
+                while not self._queue and not self._connection.done:
+                    self._cond_data_available.wait(1.0)
+                # take all data from queue for processing outside of the lock
+                if self._queue:
+                    queue = self._queue
+                    self._queue = []
+            # relay all data
+            for data in queue:
+                try:
+                    self._connection.write_data(data)
+                except Exception as e:
+                    with self._lock:
+                        self._error = e

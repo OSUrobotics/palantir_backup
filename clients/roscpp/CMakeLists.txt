@@ -20,7 +20,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/ros/common.h.in ${CATKIN_DEVE
 
 find_package(Boost REQUIRED COMPONENTS signals filesystem system)
 
-include_directories(include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/ros ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+include_directories(include ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/ros ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 add_message_files(
   DIRECTORY msg
@@ -109,7 +109,6 @@ add_library(roscpp
   src/libros/spinner.cpp
   src/libros/internal_timer_manager.cpp
   src/libros/message_deserializer.cpp
-  src/libros/header.cpp
   src/libros/poll_set.cpp
   src/libros/service.cpp
   src/libros/this_node.cpp

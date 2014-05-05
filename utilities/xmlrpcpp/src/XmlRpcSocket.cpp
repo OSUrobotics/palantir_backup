@@ -209,6 +209,7 @@ XmlRpcSocket::connect(int fd, std::string& host, int port)
   hints.ai_family = AF_UNSPEC;
   if (getaddrinfo(host.c_str(), NULL, &hints, &addr) != 0)
   {
+    fprintf(stderr, "Couldn't find an %s address for [%s]\n", s_use_ipv6_ ? "AF_INET6" : "AF_INET", host.c_str());
     return false;
   }
 
@@ -386,5 +387,6 @@ int XmlRpcSocket::get_port(int socket)
     case AF_INET6:
       return ntohs(sin6->sin6_port);
   }  
+  return 0;
 }
 

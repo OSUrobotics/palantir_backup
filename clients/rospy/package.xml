@@ -1,6 +1,6 @@
 <package>
   <name>rospy</name>
-  <version>1.9.50</version>
+  <version>1.10.2</version>
   <description>
     rospy is a pure Python client library for ROS. The rospy client
     API enables Python programmers to quickly interface with ROS <a
@@ -31,6 +31,7 @@
   <run_depend>python-numpy</run_depend>
   <run_depend>python-rospkg</run_depend>
   <run_depend>python-yaml</run_depend>
+  <run_depend>roscpp</run_depend>
   <run_depend>rosgraph</run_depend>
   <run_depend>rosgraph_msgs</run_depend>
   <run_depend>roslib</run_depend>

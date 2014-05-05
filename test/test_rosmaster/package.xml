@@ -1,6 +1,6 @@
 <package>
   <name>test_rosmaster</name>
-  <version>1.9.50</version>
+  <version>1.10.2</version>
   <description>
     Tests for rosmaster which depend on rostest.
   </description>
@@ -16,4 +16,6 @@
   <build_depend>rosgraph</build_depend>
   <build_depend>rostest</build_depend>
   <build_depend>std_msgs</build_depend>
+
+  <test_depend>rosbuild</test_depend>
 </package>

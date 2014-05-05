@@ -2,6 +2,29 @@
 Changelog for package rosconsole
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.10.2 (2014-03-03)
+-------------------
+
+1.10.1 (2014-02-25)
+-------------------
+
+1.9.54 (2014-01-27)
+-------------------
+* fix rosconsole segfault when using ROSCONSOLE_FORMAT with  (`#342 <https://github.com/ros/ros_comm/issues/342>`_)
+* add missing run/test dependencies on rosbuild to get ROS_ROOT environment variable
+
+1.9.53 (2014-01-14)
+-------------------
+* readd g_level_lockup symbol for backward compatibility when log4cxx is being used
+
+1.9.52 (2014-01-08)
+-------------------
+* fix missing export of rosconsole backend interface library
+
+1.9.51 (2014-01-07)
+-------------------
+* refactor rosconsole to not expose log4cxx, implement empty and log4cxx backends
+
 1.9.50 (2013-10-04)
 -------------------
 

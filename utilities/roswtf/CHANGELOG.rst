@@ -2,6 +2,27 @@
 Changelog for package roswtf
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.10.2 (2014-03-03)
+-------------------
+
+1.10.1 (2014-02-25)
+-------------------
+
+1.9.54 (2014-01-27)
+-------------------
+* fix roswtf checks to not require release-only python packages to be installed
+* add missing run/test dependencies on rosbuild to get ROS_ROOT environment variable
+
+1.9.53 (2014-01-14)
+-------------------
+
+1.9.52 (2014-01-08)
+-------------------
+
+1.9.51 (2014-01-07)
+-------------------
+* do not warn about not existing stacks folder in a catkin workspace
+
 1.9.50 (2013-10-04)
 -------------------
 

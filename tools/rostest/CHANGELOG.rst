@@ -2,6 +2,26 @@
 Changelog for package rostest
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.10.2 (2014-03-03)
+-------------------
+
+1.10.1 (2014-02-25)
+-------------------
+* modify rostest to wait when other instances are running
+
+1.9.54 (2014-01-27)
+-------------------
+
+1.9.53 (2014-01-14)
+-------------------
+
+1.9.52 (2014-01-08)
+-------------------
+
+1.9.51 (2014-01-07)
+-------------------
+* add missing boost component
+
 1.9.50 (2013-10-04)
 -------------------
 * fix result file naming for wet rostests when being built in-source (`ros/catkin#512 <https://github.com/ros/catkin/issues/512>`_)

@@ -37,7 +37,6 @@ Top-level implementation of launching processes. Coordinates
 lower-level libraries.
 """
 
-
 import os
 import logging
 import subprocess
@@ -60,7 +59,6 @@ _TIMEOUT_MASTER_START = 10.0 #seconds
 _TIMEOUT_MASTER_STOP  = 10.0 #seconds
 
 _ID = '/roslaunch'
-
 
 class RLTestTimeoutException(RLException): pass
 
@@ -234,17 +232,6 @@ class ROSLaunchRunner(object):
     """
     
     def __init__(self, run_id, config, server_uri=None, pmon=None, is_core=False, remote_runner=None, is_child=False, is_rostest=False):
-        # """
-        # TODO:Added by Will
-        # """
-        # import roslaunch.core
-        # import rosmaster.registration_logger
-        # m = roslaunch.core.Master()
-        # print(m.is_running())
-        # if m.is_running():
-        #     rosmaster.registration_logger.addLogger('roslaunch')        
-
-
         """
         @param run_id: /run_id for this launch. If the core is not
             running, this value will be used to initialize /run_id. If
@@ -299,8 +286,6 @@ class ROSLaunchRunner(object):
         self.pm.add_process_listener(self.listeners)
         
         self.remote_runner = remote_runner
-
-        
                 
     def add_process_listener(self, l):
         """
@@ -352,17 +337,6 @@ class ROSLaunchRunner(object):
         self.logger.info("... load_parameters complete")            
 
     def _launch_nodes(self):
-
-        # """
-        # TODO:Added by Will
-        # """
-        # import roslaunch.core
-        # import rosmaster.registration_logger
-        # m = roslaunch.core.Master()
-        # print(m.is_running())
-        # if m.is_running():
-        #     rosmaster.registration_logger.addLogger('roslaunch')
-
         """
         Launch all the declared nodes/master
         @return: two lists of node names where the first
@@ -442,7 +416,6 @@ class ROSLaunchRunner(object):
             self.logger.info("setting /roslaunch/uris/%s__%s' to %s"%(hostname, port, self.server_uri))
             param_server.setParam(_ID, '/roslaunch/uris/%s__%s'%(hostname, port),self.server_uri)
 
-
     def _check_and_set_run_id(self, param_server, run_id):
         """
         Initialize self.run_id to existing value or setup parameter
@@ -499,9 +472,6 @@ class ROSLaunchRunner(object):
             self._launch_executable(e)
     
     def _launch_core_nodes(self):
-        """
-        TODO:Added by Will
-        """
         import roslaunch.core
         import rosmaster.registration_logger
         m = roslaunch.core.Master()
@@ -536,14 +506,6 @@ class ROSLaunchRunner(object):
                 raise RLException("failed to start core service [%s]"%node_name)
 
     def launch_node(self, node, core=False):
-
-        # if core == True:
-        #     import roslaunch.core
-        #     import rosmaster.registration_logger
-        #     m = roslaunch.core.Master()
-        #     print(m.is_running())
-        #     if m.is_running():
-        #         rosmaster.registration_logger.addLogger('roslaunch')
         """
         Launch a single node locally. Remote launching is handled separately by the remote module.
         If node name is not assigned, one will be created for it.
@@ -553,7 +515,7 @@ class ROSLaunchRunner(object):
         @return obj, bool: Process handle, successful launch. If success, return actual Process instance. Otherwise return name.
         """
         self.logger.info("... preparing to launch node of type [%s/%s]", node.package, node.type)
-
+        
         # TODO: should this always override, per spec?. I added this
         # so that this api can be called w/o having to go through an
         # extra assign machines step.
@@ -741,6 +703,3 @@ class ROSRemoteRunnerIF(object):
         @rtype: [str], [str]
         """
         pass
-
-
-
