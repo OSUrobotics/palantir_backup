@@ -73,9 +73,9 @@ def namespaces_of(name):
 
 def get_roscore_filename():
     # precedence: look for version in /etc/ros.  If it's not there, fall back to roslaunch package
-    filename = os.path.join(rospkg.get_etc_ros_dir(), 'roscore.xml')
-    if os.path.isfile(filename):
-        return filename
+    #filename = os.path.join(rospkg.get_etc_ros_dir(), 'roscore.xml')
+    #if os.path.isfile(filename):
+    #    return filename
     r = rospkg.RosPack()
     return os.path.join(r.get_path('roslaunch'), 'resources', 'roscore.xml')
 
