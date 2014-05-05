@@ -123,13 +123,18 @@ class roskomodo(object):
         tt = self.master.getTopicTypes('/roskomodo')
         topicTypes = tt[2]
 
-        for msg in self.registeredList:
-            #If process_name -> node_name mapping doesn't exist, delete it.
+        ind = 0
+        while ind < len(self.registeredList):
+            rospy.logdebug(str(ind))
+            msg = self.registeredList[ind]
+            #If process_name -> node_name mapping doesn't exist, delete it. #TODO: Not deleting
             if msg.process_name.replace('/','', 1) not in self.processNameToNode:
                 rospy.logdebug(msg.process_name.replace('/','', 1) + " not in processNameToNode, deleting")
-                self.registeredList.remove(msg)
+                temp = self.registeredList.pop(ind)
+                del self.registeredList[ind]
+                rospy.logdebug(temp.process_name)
+                ind = ind + 1
                 continue
-
             node_name = self.processNameToNode[msg.process_name.replace('/','',1)]
             #Fix duration if node shuts down *after* roskomodo. Otherwise it's an error and delete it
             if msg.duration == 0:
@@ -141,8 +146,10 @@ class roskomodo(object):
                 if t[0] == msg.name:
                     msg.topic_type = t[1]
                     break
+            ind = ind + 1
 
-
+        for msg in self.registeredList:
+            rospy.logdebug(msg.process_name)
 
     def output_xml(self):
         
@@ -155,7 +162,8 @@ class roskomodo(object):
         root.appendChild(msgs)
 
         for msg in self.registeredList:
-
+            if 'reg_logger' in msg.process_name:
+                continue
             rospy.logdebug(msg.process_name)
             indvidual_msg = doc.createElement('msg')
             name = doc.createElement('name')
