@@ -1,0 +1,219 @@
+#!/usr/bin/env python
+import sys
+import rospy
+import rospy.core
+import genpy
+import rosnode
+import logging
+from roswatergate.msg import RegistrationLogger
+from roswatergate.msg import LaunchLogger
+import registration_logger
+from xmlrpclib import ServerProxy
+import os
+#from roslaunch.core import printerrlog
+
+class registration_handler(logging.Handler):
+    
+    def __init__(self):
+        rospy.logerr("INIT")
+        logging.Handler.__init__(self)
+        self.parser = registration_parser()
+    def registerNode(self, logType):
+        if logType == 'rosmaster':
+            self.pub = rospy.Publisher('registration_logger', RegistrationLogger)
+        if logType == 'roslaunch':
+            self.pub = rospy.Publisher('launch_logger', LaunchLogger)
+        rospy.init_node('reg_logger', log_level=rospy.DEBUG, disable_rosout=True, disable_signals=True, anonymous=True)     
+    def emit(self, record):
+        line = self.format(record)
+        #rospy.logerr(self.format(record))
+        rl = self.parser.parse_logging(line, record)
+        if(rl is not None):
+            self.pub.publish(rl)
+
+
+def addLogger(loggerName):
+        h = registration_handler()
+        h.registerNode(loggerName)
+        rospy.logerr("ADDING LOGGER: " + loggerName)
+        logging.getLogger(loggerName).addHandler(h)
+
+class registration_logger(object):
+    def __init__(self):
+        self.h = registration_handler()
+
+    def addLogger(self,loggerName):       
+        #Wait till rosmaster is running before trying to register the logging node
+        if(loggerName is "rosmaster"):
+            self.h.registerNode(loggerName)
+        rospy.logerr("ADDING LOGGER: " + loggerName)
+        logging.getLogger(loggerName).addHandler(self.h)
+
+
+class registration_parser(object):
+#TODO: Add process manager parser to tell when a package is started/finished.
+    def __init__(self):
+        self.options = {"-PUB" : self.unregisterPublisher,
+        "+PUB" : self.registerPublisher,
+        "-SUB" : self.unregisterSubscriber,
+        "+SUB" : self.registerSubscriber,
+        "-SERVICE" : self.unregisterService,
+        "+SERVICE" : self.registerService,
+        "create_node_process" : self.launchNode,
+        "env[" : self.parseEnvironment,
+        "... successfully launched" : self.successLaunch,
+        "process has died" : self.crashedProcess,
+        "killing os process" : self.killingProcess}
+
+    def unregisterPublisher(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Publisher"
+        msg.process_name = record.args[1]
+        msg.stamp = rospy.Time.now()
+        msg.register = 0
+        return msg
+
+    def registerPublisher(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Publisher"
+        msg.process_name = record.args[1]
+        msg.stamp = rospy.Time.now()
+        msg.register = 1
+        return msg
+
+    def unregisterSubscriber(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Subscriber"
+        msg.process_name = record.args[1]
+        msg.stamp = rospy.Time.now()
+        msg.register = 0
+        return msg
+
+    def registerSubscriber(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Subscriber"
+        msg.process_name = record.args[1]
+        msg.stamp = rospy.Time.now()
+        msg.register = 1
+        return msg
+
+    def unregisterService(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Service"
+        msg.process_name = record.args[1]
+        msg.register = 0
+        return msg
+
+    def registerService(self,record):
+        if 'reg_logger' in record.args[0]:
+            return
+        msg = RegistrationLogger()
+        msg.name = record.args[0]
+        msg.msg_type = "Service"
+        msg.process_name = record.args[1]
+        msg.stamp = rospy.Time.now()
+        msg.register = 1
+        return msg
+
+    def launchNode(self, record):
+        self.logMsg = LaunchLogger()
+        self.logMsg.package = record.args[0]
+        self.logMsg.node_name = record.args[1]
+        #If your launching a python file,  you're python, otherwise you're C++
+        if '.py' in self.logMsg.node_name:
+            self.logMsg.node_name = self.logMsg.node_name.replace('.py','')
+            self.logMsg.python = True
+        else:
+            self.logMsg.python = False
+        if 'localhost' in record.args[3]:
+            self.logMsg.master_uri = 'local'
+        else:
+            self.logMsg.master_uri = 'remote'
+        self.logMsg.register = 1
+        self.current_node_name = self.logMsg.node_name
+
+    def parseEnvironment(self, record):
+        self.logMsg.process_name = record.args[0].split('-',1)[0]
+        envDict = record.args[1]
+        self.logMsg.stamp = rospy.Time.now()
+        if 'DESKTOP_SESSION' in envDict:
+            self.logMsg.desktop_session = envDict['DESKTOP_SESSION']
+        self.logMsg.ros_distro = envDict['ROS_DISTRO']
+        self.current_process_name = record.args[0]
+
+    def successLaunch(self, record):
+        rospy.logerr('SUCCESSFULLY LAUNCHED: ' + self.logMsg.node_name)
+        if self.logMsg.process_name is None:
+            return
+        return self.logMsg
+    
+    def crashedProcess(self, record):
+        msg = LaunchLogger()
+        msg.stamp = rospy.Time.now()
+        msg.node_name = self.current_node_name
+        msg.register = 0
+        return msg
+
+    def killingProcess(self, record):
+        msg = LaunchLogger()
+        msg.stamp = rospy.Time.now()
+        msg.node_name = self.current_node_name
+        msg.register = 0
+        return msg
+
+    def parse_logging(self,line, record):
+        rospy.logerr(line)
+        for ind in self.options:
+            if ind in line:
+                msg = self.options[ind](record)
+                return msg
+        return None
+
+#    def build_message(self,name, msg_type, topic_type, caller_id, register):
+#        msg = RegistrationLogger()
+#        msg.name = name
+#        msg.msg_type = msg_type
+#        msg.topic_type = topic_type
+#        msg.caller_id = caller_id
+#        if(self.starting == 1):
+#            msg.stamp = genpy.Time(0)
+#        if(self.starting == 0):
+#            msg.stamp = rospy.Time.now()
+#        msg.register = register
+#        return msg
+        
+#    def send_message(self, msg):
+        #The first published topic is registration_logger. This function gets called
+        #when creating the logger, therefore the self.pub isn't created yet. Hence, the list.
+
+        #Should only ever be the registration_logger, but just in case...
+        
+        #if(not self.unsentList and self.starting == 0):
+        #    for msg in self.unsentList:
+        #        self.pub.publish(msg)
+
+        #msg = self.build_message(name, msg_type, topic_type, caller_id, register)
+      #  if(self.starting == 1):
+     #       self.unsentList.append(msg)
+    #        return
+   #     
+  #      if(self.shutdown == 0):
+ #           self.pub.publish(msg)
+#
+ #       if(msg.name == "/registration_logger" and msg.register == 0):
+ #           self.shutdown = 1
