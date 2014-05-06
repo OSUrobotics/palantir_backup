@@ -131,9 +131,7 @@ class roskomodo(object):
             if msg.process_name.replace('/','', 1) not in self.processNameToNode:
                 rospy.logdebug(msg.process_name.replace('/','', 1) + " not in processNameToNode, deleting")
                 temp = self.registeredList.pop(ind)
-                del self.registeredList[ind]
                 rospy.logdebug(temp.process_name)
-                ind = ind + 1
                 continue
             node_name = self.processNameToNode[msg.process_name.replace('/','',1)]
             #Fix duration if node shuts down *after* roskomodo. Otherwise it's an error and delete it
@@ -162,9 +160,6 @@ class roskomodo(object):
         root.appendChild(msgs)
 
         for msg in self.registeredList:
-            if 'reg_logger' in msg.process_name:
-                continue
-            print(msg.process_name)
             rospy.logdebug(msg.process_name)
             indvidual_msg = doc.createElement('msg')
             name = doc.createElement('name')
