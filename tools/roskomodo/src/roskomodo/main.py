@@ -91,7 +91,7 @@ class roskomodo(object):
         if(msg.register == 0):
             #If the msg trying to unregister is roskomodo, everything is being shut down. Print and quit.
             if msg.process_name == 'roskomodo' and msg.node_name == 'main':
-                self.output_xml()
+                #self.output_xml()
                 return
             rospy.logdebug('Node Error: ' + msg.node_name + ' did not find match when unregistering node')
             return
@@ -131,9 +131,7 @@ class roskomodo(object):
             if msg.process_name.replace('/','', 1) not in self.processNameToNode:
                 rospy.logdebug(msg.process_name.replace('/','', 1) + " not in processNameToNode, deleting")
                 temp = self.registeredList.pop(ind)
-                del self.registeredList[ind]
                 rospy.logdebug(temp.process_name)
-                ind = ind + 1
                 continue
             node_name = self.processNameToNode[msg.process_name.replace('/','',1)]
             #Fix duration if node shuts down *after* roskomodo. Otherwise it's an error and delete it
@@ -162,8 +160,6 @@ class roskomodo(object):
         root.appendChild(msgs)
 
         for msg in self.registeredList:
-            if 'reg_logger' in msg.process_name:
-                continue
             rospy.logdebug(msg.process_name)
             indvidual_msg = doc.createElement('msg')
             name = doc.createElement('name')
@@ -242,6 +238,9 @@ class roskomodo(object):
         f = open(file_dir,'a')
         f.write(doc.toprettyxml(indent="    ", encoding="utf-8"))
 
+
 if __name__ == "__main__":
     a = roskomodo()
+    import atexit
+    atexit.register(a.output_xml)
     rospy.spin()
