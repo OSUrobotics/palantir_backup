@@ -8,6 +8,11 @@ from xml.dom.minidom import Document
 import rosnode
 import rospkg
 import time
+from rospy.names import get_mappings
+import rosgraph
+from rosnode import get_node_names
+import rostopic
+from rosgraph_msgs.msg import Log
 
 class roskomodo(object):
     def __init__(self):
@@ -75,6 +80,40 @@ class roskomodo(object):
             self.reg_callback(msg)
 
 
+
+    def lookup_uri(self, master, system_state, topic, uri):
+        for l in system_state[0:2]:
+            for entry in l:
+                if entry[0] == topic:
+                    for n in entry[1]:
+                        if rostopic.get_api(master, n) == uri:
+                            return n
+
+
+    #Since nodes shut off at random times, this code is error prone. Do not use until fixed.
+    def get_topic_connections(self, msg):
+        master2 = rosgraph.Master('/roskomodo')
+        s2 = master2.getSystemState()
+        rospy.logerr(msg.process_name)
+        node_api = rosnode.get_api_uri(master2, msg.process_name)
+        rospy.logerr(node_api)
+        node = xmlrpclib.ServerProxy(node_api)
+        rospy.logerr(node)
+        businfo = node.getBusInfo(msg.process_name)
+
+        for info in businfo[2]:
+            topic = info[4]
+            rospy.logerr(info)
+            var = self.lookup_uri(master2, s2, topic, info[1])
+            if var == None:
+                continue
+            if info[2] == 'i':
+                rospy.logerr('Inbound: ' + var)
+            if info[2] == 'o':
+                rospy.logerr('Outbound: ' + var)       
+
+
+
     def launch_callback(self, msg):
         #Connects process names to node names. Needed to connect topics to nodes launching them.
         self.processNameToNode[msg.process_name] = msg.node_name
@@ -99,10 +138,9 @@ class roskomodo(object):
         rospy.logdebug('Registering Node: ' + msg.node_name)
         self.launchList.append(msg)
 
-
     def reg_callback(self, msg):
         #If unregistering, find the corresponding topic/service and compute duration.
-        if(msg.register == 0):
+        if msg.register == 0:
             for regEle in self.registeredList:
                 if regEle.name == msg.name and regEle.duration == 0 and regEle.process_name == msg.process_name:
                     rospy.logdebug('Unregistering: ' + msg.name)
@@ -127,16 +165,19 @@ class roskomodo(object):
         while ind < len(self.registeredList):
             rospy.logdebug(str(ind))
             msg = self.registeredList[ind]
+            process_name = msg.process_name.replace('/','', 1)
+            
             #If process_name -> node_name mapping doesn't exist, delete it. #TODO: Not deleting
-            if msg.process_name.replace('/','', 1) not in self.processNameToNode:
-                rospy.logdebug(msg.process_name.replace('/','', 1) + " not in processNameToNode, deleting")
+            if process_name not in self.processNameToNode:
+                rospy.logdebug(process_name + " not in processNameToNode, deleting")
                 temp = self.registeredList.pop(ind)
                 rospy.logdebug(temp.process_name)
                 continue
-            node_name = self.processNameToNode[msg.process_name.replace('/','',1)]
+            node_name = self.processNameToNode[process_name]
+            
             #Fix duration if node shuts down *after* roskomodo. Otherwise it's an error and delete it
             if msg.duration == 0:
-                node_name = self.processNameToNode[msg.process_name.replace('/','',1)]
+                node_name = self.processNameToNode[process_name]
                 if "roskomodo" in node_name or "main" in node_name or "rosout" in node_name:
                     msg.duration = rospy.Time.now().to_sec() - msg.stamp.to_sec()
             
@@ -144,7 +185,8 @@ class roskomodo(object):
                 if t[0] == msg.name:
                     msg.topic_type = t[1]
                     break
-            ind = ind + 1
+            
+            ind += 1
 
         for msg in self.registeredList:
             rospy.logdebug(msg.process_name)
@@ -159,6 +201,7 @@ class roskomodo(object):
         msgs = doc.createElement('msgs')
         root.appendChild(msgs)
 
+        #Output to XML
         for msg in self.registeredList:
             rospy.logdebug(msg.process_name)
             indvidual_msg = doc.createElement('msg')
