@@ -76,7 +76,7 @@ class Master(object):
         
         logging.getLogger('rosmaster.master').info("Master initialized: port[%s], uri[%s]", self.port, self.uri)
 
-        rosmaster.registration_logger.addLogger('rosmaster')
+        rosmaster.registration_logger.add_logger('rosmaster')
     def ok(self):
         if self.master_node is not None:
             return self.master_node.handler._ok()
