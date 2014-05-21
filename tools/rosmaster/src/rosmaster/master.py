@@ -41,7 +41,9 @@ single interface for running and stopping the ROS Master.
 
 import logging
 import time
+
 import rosgraph.xmlrpc
+
 import rosmaster.master_api
 import rosmaster.registration_logger
 DEFAULT_MASTER_PORT=11311 #default port for master's to bind to
@@ -61,8 +63,8 @@ class Master(object):
 
         handler = rosmaster.master_api.ROSMasterHandler()
         master_node = rosgraph.xmlrpc.XmlRpcNode(self.port, handler)
-        master_node.start()     
-        
+        master_node.start()
+
         # poll for initialization
         while not master_node.uri:
             time.sleep(0.0001) 
@@ -71,13 +73,10 @@ class Master(object):
         self.handler = handler
         self.master_node = master_node
         self.uri = master_node.uri
-        logging.getLogger('rosmaster.master').info("Master initialized: port[%s], uri[%s]", self.port, self.uri)
         
-        """
-        TODO:Added by Will
-        """
-        rosmaster.registration_logger.addLogger('rosmaster')
+        logging.getLogger('rosmaster.master').info("Master initialized: port[%s], uri[%s]", self.port, self.uri)
 
+        rosmaster.registration_logger.add_logger('rosmaster')
     def ok(self):
         if self.master_node is not None:
             return self.master_node.handler._ok()

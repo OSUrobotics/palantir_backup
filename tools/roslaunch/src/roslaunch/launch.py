@@ -506,7 +506,7 @@ class ROSLaunchRunner(object):
         import rosmaster.registration_logger
         m = roslaunch.core.Master()
         if m.is_running():
-            rosmaster.registration_logger.addLogger('roslaunch')              
+            rosmaster.registration_logger.add_logger('roslaunch')              
 
         """
         launch any core services that are not already running. master must

@@ -14,7 +14,11 @@ from rosnode import get_node_names
 import rostopic
 from rosgraph_msgs.msg import Log
 
-class roskomodo(object):
+class Komodo(object):
+    """
+    Monitor class for compiling node and topic metadata. Launches from roscore.xml. Remove if this compilation is undesirable.
+    Subscribes to the registration and launch loggers, compiles this data and ouputs it to xml when roscore shuts down.
+    """
     def __init__(self):
         rospy.init_node('roskomodo', log_level=rospy.DEBUG)
         self.sub_registration = rospy.Subscriber('/registration_logger', RegistrationLogger, self.reg_callback)
@@ -25,9 +29,16 @@ class roskomodo(object):
         #I don't think there is a function to acquire this information.
         self.processNameToNode = {'main': 'main', 'rosout':'rosout'}
 
+        self.register_preexisting()
 
-        #For services/topics that exist when roskomodo begins. Assume they started
-        #approx. at the same time roskomodo did, since roskomodo is in roscore
+
+    def register_preexisting(self):
+        """
+        For services/topics that exist when roskomodo begins. Assume they started
+        approx. at the same time roskomodo did, since roskomodo is in roscore. 
+        TODO: This may no longer be needed.
+        """
+
         master_uri = os.environ.get(rosgraph.ROS_MASTER_URI, None)
         self.master = xmlrpclib.ServerProxy(master_uri)
         s = self.master.getSystemState('/roskomodo')
@@ -77,11 +88,12 @@ class roskomodo(object):
             msg.process_name = p[1][0]
             msg.stamp = rospy.Time.now()
             msg.register = 1
-            self.reg_callback(msg)
-
-
+            self.reg_callback(msg)       
 
     def lookup_uri(self, master, system_state, topic, uri):
+        """
+        Find the node (URI) subscribing or publishing to topic from uri.
+        """
         for l in system_state[0:2]:
             for entry in l:
                 if entry[0] == topic:
@@ -92,6 +104,9 @@ class roskomodo(object):
 
     #Since nodes shut off at random times, this code is error prone. Do not use until fixed.
     def get_topic_connections(self, msg):
+        """
+        Find the connections between topics and nodes. i.e. which node subscribes to topic published by node msg.node_name.
+        """
         master2 = rosgraph.Master('/roskomodo')
         s2 = master2.getSystemState()
         rospy.logerr(msg.process_name)
@@ -115,6 +130,12 @@ class roskomodo(object):
 
 
     def launch_callback(self, msg):
+        """
+        Callback to handle LaunchLogger messages.
+        If registering a node, this callback simply stores the msg.
+        If unregistering a node, this callback finds the duration the node ran, and performs error handling if no registration match can be found.
+        """
+
         #Connects process names to node names. Needed to connect topics to nodes launching them.
         self.processNameToNode[msg.process_name] = msg.node_name
 
@@ -139,6 +160,11 @@ class roskomodo(object):
         self.launchList.append(msg)
 
     def reg_callback(self, msg):
+        """
+        Callback to handle RegistrationLogger messages.
+        If registering a topic, this callback simply stores the msg.
+        If unregistering a topic, this callback finds the duration the topic ran, and performs error handling if no registration match can be found.
+        """
         #If unregistering, find the corresponding topic/service and compute duration.
         if msg.register == 0:
             for regEle in self.registeredList:
@@ -158,6 +184,13 @@ class roskomodo(object):
 
 
     def preprocess_xml(self):
+        """
+        Associates the topic type with the topic.
+        Finds any potential errors and either fixes or deletes them.
+        Error: If the duration of a topic/node is 0. If a part of the roscore (roskomodo, main, rosout) make the termination time the current time.
+        Otherwise delete.
+        Error: If there is no mapping from the process_name (Name given by user/OS) and node_name (Executable), delete.
+        """
         tt = self.master.getTopicTypes('/roskomodo')
         topicTypes = tt[2]
 
@@ -167,7 +200,7 @@ class roskomodo(object):
             msg = self.registeredList[ind]
             process_name = msg.process_name.replace('/','', 1)
             
-            #If process_name -> node_name mapping doesn't exist, delete it. #TODO: Not deleting
+            #If process_name -> node_name mapping doesn't exist, delete it.
             if process_name not in self.processNameToNode:
                 rospy.logdebug(process_name + " not in processNameToNode, deleting")
                 temp = self.registeredList.pop(ind)
@@ -192,7 +225,10 @@ class roskomodo(object):
             rospy.logdebug(msg.process_name)
 
     def output_xml(self):
-        
+        """
+        Simply outputs the topic and node metadata to XML. Runs atexit.
+        ROSKomodo files are saved as ~/.ros/log/roskomodo-*.
+        """
         self.preprocess_xml()
 
         doc = Document()
@@ -276,14 +312,14 @@ class roskomodo(object):
             launches.appendChild(indvidual_msg)
 
         log_dir = rospkg.get_log_dir()
-        date_time = time.strftime("%j-%H-%S")
+        date_time = time.strftime("%j-%H-%M-%S")
         file_dir = log_dir + "/roskomodo-" + date_time + ".xml"
         f = open(file_dir,'a')
         f.write(doc.toprettyxml(indent="    ", encoding="utf-8"))
 
 
 if __name__ == "__main__":
-    a = roskomodo()
+    a = Komodo()
     import atexit
     atexit.register(a.output_xml)
     rospy.spin()
