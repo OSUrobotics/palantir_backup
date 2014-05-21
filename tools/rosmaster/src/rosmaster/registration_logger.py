@@ -6,13 +6,14 @@ from roskomodo.msg import RegistrationLogger
 from roskomodo.msg import LaunchLogger
 import registration_logger
 
-
 #Custom logging handler to publish topic/node registration/unregistration
 class registration_handler(logging.Handler):
     
     def __init__(self):
         logging.Handler.__init__(self)
         self.parser = registration_parser()
+        self.loggingList = list()
+        self.samples_seen = 0
     def registerNode(self, logType):
         if logType == 'rosmaster':
             self.pub = rospy.Publisher('registration_logger', RegistrationLogger)
@@ -22,8 +23,23 @@ class registration_handler(logging.Handler):
     def emit(self, record):
         line = self.format(record)
         rl = self.parser.parse_logging(line, record)
-        if(rl is not None):
+        if rl is not None:
+            self.samples_seen += 1
+            if self.pub.get_num_connections() == 0:
+                #If there are no subscribers yet, store data for later publication to roskomodo. 
+                #If ~10 samples have been stored, it is safe to say roskomodo will not be ran, stop storing to save memory.
+                if self.samples_seen < 10:
+                    self.loggingList.append(rl)
+                return
             self.pub.publish(rl)
+
+            #If there is data to send, send it now, since we now know there is something subscribed. This is to help avoid the problem of
+            #nodes not having their subscriptions registered by the time registration_handler starts publishing.     
+            if len(self.loggingList) != 0:
+                for ele in self.loggingList:
+                    self.pub.publish(ele)
+                self.loggingList = []
+                return
 
 #Global addLogger access. registration_logger's probably isn't needed. TODO.
 def addLogger(loggerName):
@@ -173,7 +189,8 @@ class registration_parser(object):
         return msg
 
     def parse_logging(self,line, record):
-        #rospy.logdebug(line)
+        #This line can cause errors. Use only for debugging.
+        #rospy.logerr(line)
         for ind in self.options:
             if ind in line:
                 msg = self.options[ind](record)
