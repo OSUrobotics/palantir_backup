@@ -6,6 +6,10 @@ from roskomodo.msg import RegistrationLogger
 from roskomodo.msg import LaunchLogger
 import registration_logger
 
+"""
+Everything requiring parsing is wrapped in try/catch due to ROS becoming unresponsive if rosmaster fails (And this is beta code)
+"""
+
 class RegistrationHandler(logging.Handler):
     """
     Custom logging handler class for publshing node and topic registrations.
@@ -38,32 +42,36 @@ class RegistrationHandler(logging.Handler):
         rl = self.parser.parse_logging(line, record)
         if rl is not None:
             self.samples_seen += 1
-            if self.pub.get_num_connections() == 0:
-                #If there are no subscribers yet, store data for later publication to roskomodo. 
-                #If ~10 samples have been stored, it is safe to say roskomodo will not be ran, stop storing to save memory.
-                if self.samples_seen < 10:
-                    self.loggingList.append(rl)
-                return
-            self.pub.publish(rl)
+            try:
+                if self.pub.get_num_connections() == 0:
+                    #If there are no subscribers yet, store data for later publication to roskomodo. 
+                    #If ~10 samples have been stored, it is safe to say roskomodo will not be ran, stop storing to save memory.
+                    if self.samples_seen < 10:
+                        self.loggingList.append(rl)
+                    return
+                self.pub.publish(rl)
 
-            #If there is data to send, send it now, since we now know there is something subscribed. This is to help avoid the problem of
-            #nodes not having their subscriptions registered by the time RegistrationHandler starts publishing.     
-            if len(self.loggingList) != 0:
-                for ele in self.loggingList:
-                    self.pub.publish(ele)
-                self.loggingList = []
-                return
-
+                #If there is data to send, send it now, since we now know there is something subscribed. This is to help avoid the problem of
+                #nodes not having their subscriptions registered by the time RegistrationHandler starts publishing.     
+                if len(self.loggingList) != 0:
+                    for ele in self.loggingList:
+                        self.pub.publish(ele)
+                    self.loggingList = []
+                    return
+            except:
+                rospy.logerr("registration_logger error in RegistrationHandler.emit")
 def add_logger(loggerName):
     """
     Global add_logger function access. In this way, any code in ros can add the RegistrationHandler to an existing logger.
-    However, only rosmaster and roslaunch is really needed.
+    However, only rosmaster and roslaunch are really needed.
     """
-    h = RegistrationHandler()
-    h.register_node(loggerName)
-    rospy.logdebug("ADDING LOGGER: " + loggerName)
-    logging.getLogger(loggerName).addHandler(h)
-
+    try:
+        h = RegistrationHandler()
+        h.register_node(loggerName)
+        rospy.logdebug("ADDING LOGGER: " + loggerName)
+        logging.getLogger(loggerName).addHandler(h)
+    except:
+        rospy.logerr("registration_logger error in add_logger")
 
 class RegistrationParser(object):
     """
@@ -236,6 +244,9 @@ class RegistrationParser(object):
         #rospy.logerr(line)
         for ind in self.options:
             if ind in line:
-                msg = self.options[ind](record)
-                return msg
+                try:
+                    msg = self.options[ind](record)
+                    return msg
+                except:
+                    rospy.logerr("registration_logger error in RegistrationParser.parse_logging")
         return None
