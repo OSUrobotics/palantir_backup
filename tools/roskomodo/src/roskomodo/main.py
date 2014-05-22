@@ -13,6 +13,7 @@ import rosgraph
 from rosnode import get_node_names
 import rostopic
 from rosgraph_msgs.msg import Log
+from uuid import getnode as get_mac
 
 class Komodo(object):
     """
@@ -234,10 +235,18 @@ class Komodo(object):
         doc = Document()
         root = doc.createElement('root')
         doc.appendChild(root)
+
+        #User Info
+        user = doc.createElement('user')
+        root.appendChild(user)
+        mac = doc.createElement('mac')
+        mac_content = doc.createTextNode(str(get_mac()))
+        mac.appendChild(mac_content)
+        user.appendChild(mac)
+
+        #Msgs
         msgs = doc.createElement('msgs')
         root.appendChild(msgs)
-
-        #Output to XML
         for msg in self.registeredList:
             rospy.logdebug(msg.process_name)
             indvidual_msg = doc.createElement('msg')
@@ -269,6 +278,7 @@ class Komodo(object):
             msgs.appendChild(indvidual_msg)
 
 
+        #Launches
         launches = doc.createElement('launches')
         root.appendChild(launches)
 
