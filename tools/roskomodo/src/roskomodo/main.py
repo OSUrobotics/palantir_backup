@@ -37,7 +37,6 @@ class Komodo(object):
         """
         For services/topics that exist when roskomodo begins. Assume they started
         approx. at the same time roskomodo did, since roskomodo is in roscore. 
-        TODO: This may no longer be needed.
         """
 
         master_uri = os.environ.get(rosgraph.ROS_MASTER_URI, None)
@@ -103,7 +102,7 @@ class Komodo(object):
                             return n
 
 
-    #Since nodes shut off at random times, this code is error prone. Do not use until fixed.
+    #Since nodes turn on/shut off at random times, this code is error prone. Do not use until fixed.
     def get_topic_connections(self, msg):
         """
         Find the connections between topics and nodes. i.e. which node subscribes to topic published by node msg.node_name.
